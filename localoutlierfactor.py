@@ -11,10 +11,16 @@ df = pd.read_csv('web.csv')
 
 # Print out metrics
 def getmetrics(df):
+    metricdic = {}
     for col in df:
         print("Column : {}".format(col))
+        metricdic[col] = {}
         for k,v in df[col].value_counts().items():
-            print("Key : {} Value : {}".format(k,v))
+            #metricdic[col].add(k=v)
+            #metricdic[col] = {k:v}
+            metricdic[col][k] = v
+            #print("Key : {} Value : {}".format(k,v))
+    return metricdic
 
 
 # Only numbers use this
@@ -26,7 +32,7 @@ df = df.drop(['timestamp', 'agent', 'url'], axis = 1)
 # Convert strings to numbers
 X = pd.get_dummies(df, columns=df.columns, drop_first=True).to_numpy()
 
-getmetrics(df)
+m = getmetrics(df)
 
 # n_neighbors default is 20 using this for now
 # This is actually running the algorithm so may take a while depending on your hardware
@@ -43,6 +49,8 @@ for i in range(len(Z)):
       #outlier.append(X[i])
 
 # Outlier is now a list of outliers matching the MAXIMUM difference between normal
+
+# Use m to determine the rank of each of these features to see how accurate this algorithm is
 
 print(len(outlier))
 print(outlier)
