@@ -1,56 +1,46 @@
 import numpy as np
 from sklearn.neighbors import LocalOutlierFactor
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # This is useful when you have a bunch of data and you want to find the anomalies
 
-
 #Get data
-df = pd.read_csv('web.csv')
+#og = pd.read_csv('web.csv')
+og = pd.read_csv('web2.csv')
+df = og[['hour_of_day', 'geo.src']]
 #df = df[['response', 'hour_of_day']]
 
-# Print out metrics
+
 def getmetrics(df):
-    metricdic = {}
+    data = []
     for col in df:
-        print("Column : {}".format(col))
-        metricdic[col] = {}
+        rank = 1
         for k,v in df[col].value_counts().items():
-            #metricdic[col].add(k=v)
-            #metricdic[col] = {k:v}
-            metricdic[col][k] = v
-            #print("Key : {} Value : {}".format(k,v))
-    return metricdic
+            data.append([col,k,v,rank])
+            rank +=1
+    metrics = pd.DataFrame(data, columns = ['Column', 'Object', 'Count', 'Rank'])
+    metrics.to_csv('metrics.csv')
+    return metrics
 
+metrics = getmetrics(df)
 
-# Only numbers use this
-#X = df.to_numpy()
+# Convert string characters to proper characters
+X = pd.get_dummies(df, columns=df.columns, drop_first=True)
+X.to_csv('dummy.csv')
 
-# Drop noisy columns
-df = df.drop(['timestamp', 'agent', 'url'], axis = 1)
+X = X.to_numpy()
+clf = LocalOutlierFactor(n_neighbors=35, n_jobs=-1, contamination='auto' ).fit(X)
 
-# Convert strings to numbers
-X = pd.get_dummies(df, columns=df.columns, drop_first=True).to_numpy()
+# Pretty sure this one is wrong or used for something else
+#Z = clf.negative_outlier_factor_
+Z = clf._lrd
 
-m = getmetrics(df)
+outlier = list((Z).argsort()[:10])
+anomaliestocsv = []
+for i in outlier:
+  anomaliestocsv.append(list(og.iloc[i]))
 
-# n_neighbors default is 20 using this for now
-# This is actually running the algorithm so may take a while depending on your hardware
-clf = LocalOutlierFactor(n_neighbors=20, n_jobs=-1).fit(X)
-Z = clf.negative_outlier_factor_
-
-
-# Z.min() is the piece of data that is furthest away!
-
-outlier = []
-for i in range(len(Z)):
-  if Z[i] == Z.min():
-      outlier.append(df.values[i])
-      #outlier.append(X[i])
-
-# Outlier is now a list of outliers matching the MAXIMUM difference between normal
-
-# Use m to determine the rank of each of these features to see how accurate this algorithm is
-
-print(len(outlier))
-print(outlier)
+print(anomaliestocsv)
+dataout = pd.DataFrame(anomaliestocsv, columns=og.columns)
+dataout.to_csv('anomalies.csv', index=False)
